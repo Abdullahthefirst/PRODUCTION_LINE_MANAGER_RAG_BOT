@@ -1,0 +1,9 @@
+date,line,machine,machine_type,issue,severity,downtime_minutes,action_taken,resolved
+2026-08-22,L03,M-C02,Conveyor,Motor overheating,High,104,Maintenance inspection,Yes
+2026-08-25,L03,M-C02,Conveyor,Belt misalignment,Medium,66,Component adjusted,Yes
+2026-08-29,L03,M-C02,Conveyor,Motor overheating,High,121,Part replaced,Yes
+2026-09-01,L03,M-C02,Conveyor,Belt misalignment,Medium,59,Component adjusted,Yes
+2026-09-04,L03,M-C02,Conveyor,Motor overheating,High,118,Maintenance inspection,No
+2026-09-05,L02,M-B02,Packing,Jam in feeder,Medium,42,Cleaning and recalibration,Yes
+2026-09-06,L01,M-A01,Filling,Nozzle blockage,Low,21,Operator reset and inspection,Yes
+2026-09-07,L04,M-D01,Cutting,Blade wear,Medium,37,Part replaced,Yes

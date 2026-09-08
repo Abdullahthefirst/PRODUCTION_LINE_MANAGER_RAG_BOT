@@ -1,0 +1,30 @@
+ALIASES = {
+    "line_id": ["line id", "line", "production line", "line name"],
+    "supervisor": ["supervisor", "line supervisor", "manager", "responsible person"],
+    "product": ["product", "item", "sku", "product name"],
+    "week": ["week", "week no", "week number"],
+    "week_start": ["week start", "date", "start date"],
+    "target_units": ["target units", "target", "weekly target", "planned units", "plan", "planned production"],
+    "actual_units": ["actual units", "actual", "production", "output", "actual production", "produced units"],
+    "downtime_hours": ["downtime hours", "downtime hrs", "downtime"],
+    "defect_units": ["defect units", "defects", "rejected units", "rejects", "scrap"],
+    "status": ["status", "line status"],
+    "machine_id": ["machine id", "machine", "equipment id"],
+    "machine_type": ["machine type", "equipment type", "type"],
+    "issue": ["issue", "problem", "fault", "machine issue"],
+    "severity": ["severity", "priority"],
+    "downtime_minutes": ["downtime minutes", "downtime min", "minutes down", "stoppage minutes"],
+    "action_taken": ["action taken", "action", "resolution", "maintenance action"],
+    "resolved": ["resolved", "closed", "fixed"],
+    "quarter": ["quarter", "qtr"],
+    "quarter_target": ["quarter target", "target units", "target", "quarterly target"],
+}
+
+CANONICAL_GROUPS = {
+    "weekly_production": ["line_id", "supervisor", "product", "week", "week_start", "target_units", "actual_units",
+                          "downtime_hours", "defect_units", "status"],
+    "machine_issues": ["line_id", "machine_id", "machine_type", "issue", "severity", "downtime_minutes",
+                       "action_taken", "resolved"],
+    "quarter_targets": ["quarter", "product", "quarter_target"],
+    "production_lines": ["line_id", "supervisor", "product", "status"],
+}

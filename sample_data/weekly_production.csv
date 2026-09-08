@@ -1,0 +1,13 @@
+week,line,supervisor,product,target_units,actual_units,downtime_hours,defect_units,status
+2026-W34,L01,Ahmed Khan,Product Alpha,14500,14720,1.8,72,On Track
+2026-W34,L02,Sara Ali,Product Alpha,14000,13620,2.4,94,Watch
+2026-W34,L03,Usman Raza,Product Beta,11500,9950,7.1,131,Behind
+2026-W34,L04,Hina Malik,Product Gamma,8500,8590,1.6,52,On Track
+2026-W35,L01,Ahmed Khan,Product Alpha,14500,14380,2.0,79,On Track
+2026-W35,L02,Sara Ali,Product Alpha,14000,14180,1.9,81,On Track
+2026-W35,L03,Usman Raza,Product Beta,11500,10140,6.8,142,Behind
+2026-W35,L04,Hina Malik,Product Gamma,8500,8420,2.1,58,On Track
+2026-W36,L01,Ahmed Khan,Product Alpha,14500,14610,1.6,70,On Track
+2026-W36,L02,Sara Ali,Product Alpha,14000,13870,2.2,88,On Track
+2026-W36,L03,Usman Raza,Product Beta,11500,9700,8.2,154,Behind
+2026-W36,L04,Hina Malik,Product Gamma,8500,8610,1.4,55,On Track
