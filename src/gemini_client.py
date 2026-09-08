@@ -28,13 +28,11 @@ def is_auth_error(exc: Exception) -> bool:
 
 def validate_key(api_key: str):
     client = create_client(api_key)
-    # Minimal inexpensive call that validates both credentials and model access.
-    response = client.models.generate_content(
-        model=GENERATION_MODEL,
-        contents="Reply with exactly: OK",
-        config=types.GenerateContentConfig(max_output_tokens=8),
-    )
-    return client, bool(response and response.text)
+
+    # Validate credentials/model access without doing generation.
+    model = client.models.get(model=GENERATION_MODEL)
+
+    return client, model is not None
 
 def generate_text(client, prompt: str, max_output_tokens: int = 1800) -> str:
     response = client.models.generate_content(
