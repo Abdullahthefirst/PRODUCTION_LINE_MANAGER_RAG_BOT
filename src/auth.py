@@ -1,6 +1,6 @@
 import streamlit as st
 
-from src.gemini_client import validate_key, is_auth_error
+from src.gemini_client import validate_key
 from src.state import invalidate_api_key
 
 def render_api_key_gate():
@@ -48,14 +48,5 @@ def render_api_key_gate():
                     st.session_state.auth_error = None
                     st.rerun()
                 except Exception as exc:
-    if is_auth_error(exc):
-        invalidate_api_key(
-            "The Gemini API key is invalid or does not have access."
-        )
-        st.rerun()
-
-    # Key is not proven invalid.
-    st.error(
-        "Gemini is temporarily unavailable. "
-        "Your API key was not rejected. Please try again."
-    )
+                    invalidate_api_key(f"Gemini rejected the key or model request: {exc}")
+                    st.rerun()
