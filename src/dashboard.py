@@ -1,7 +1,8 @@
 import streamlit as st
 
 from src.charts import (
-    line_performance_chart, weekly_chart, machine_downtime_chart, issue_chart, PLOTLY_CONFIG
+    line_performance_chart, weekly_chart, machine_downtime_chart,
+    issue_chart, PLOTLY_CONFIG
 )
 from src.ai_analysis import generate_management_analysis
 from src.gemini_client import is_auth_error
@@ -9,6 +10,8 @@ from src.state import invalidate_api_key
 
 def _fmt_int(v):
     try:
+        if v is None:
+            return "—"
         return f"{float(v):,.0f}"
     except Exception:
         return "—"
@@ -29,9 +32,9 @@ def render_dashboard():
         st.info("Open **Upload Data** from the sidebar to begin.")
         return
 
-    a = st.session_state.analysis
-    k = a.get("kpis", {})
-    q = st.session_state.quality_report
+    a = st.session_state.analysis or {}
+    k = a.get("kpis", {}) or {}
+    q = st.session_state.quality_report or {}
 
     st.markdown(
         f"""
@@ -46,18 +49,23 @@ def render_dashboard():
 
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Planned output", _fmt_int(k.get("total_target")))
-    c2.metric("Actual output", _fmt_int(k.get("total_actual")), delta=_fmt_int(k.get("variance", 0)))
-    c3.metric("Target achievement", f"{k.get('achievement_pct',0):.1f}%")
-    c4.metric("Logged downtime", f"{k.get('downtime_hours',0):,.1f} h" if "downtime_hours" in k else "—")
+    c2.metric("Actual output", _fmt_int(k.get("total_actual")),
+              delta=_fmt_int(k.get("variance", 0)) if "variance" in k else None)
+    c3.metric("Target achievement",
+              f"{k.get('achievement_pct', 0):.1f}%" if "achievement_pct" in k else "—")
+    c4.metric("Logged downtime",
+              f"{k.get('downtime_hours', 0):,.1f} h" if "downtime_hours" in k else "—")
 
     left, right = st.columns([1.6, 1])
+
     with left:
         st.markdown("### Production performance")
-        fig = weekly_chart(a.get("weekly_summary"))
+        weekly_df = a.get("weekly_summary")
+        fig = weekly_chart(weekly_df)
         if fig:
             st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
         else:
-            st.info("Weekly fields were not detected.")
+            st.info("Weekly chart could not be created because week, target, or actual production fields are missing.")
 
     with right:
         st.markdown("### Data readiness")
@@ -67,28 +75,51 @@ def render_dashboard():
             st.caption("Missing fields reduce the confidence of some analyses.")
 
     left, right = st.columns(2)
+
     with left:
         st.markdown("### Line target achievement")
-        fig = line_performance_chart(a.get("line_summary"))
+        line_df = a.get("line_summary")
+        fig = line_performance_chart(line_df)
+
         if fig:
             st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
-            show = a["line_summary"].copy()
-            cols = [c for c in ["line_id","supervisor","target_units","actual_units","achievement_pct","variance"] if c in show.columns]
-            st.dataframe(show[cols], use_container_width=True, hide_index=True)
-        else:
-            st.info("Line target/actual fields were not detected.")
+
+        if line_df is not None and not line_df.empty:
+            cols = [
+                c for c in [
+                    "line_id", "supervisor", "target_units", "actual_units",
+                    "achievement_pct", "variance"
+                ]
+                if c in line_df.columns
+            ]
+            if cols:
+                st.dataframe(
+                    line_df[cols],
+                    use_container_width=True,
+                    hide_index=True,
+                )
+        elif not fig:
+            st.info("Line-level performance fields were not detected.")
 
     with right:
         st.markdown("### Machine downtime / issue impact")
-        fig = machine_downtime_chart(a.get("machine_summary"))
+        machine_df = a.get("machine_summary")
+        fig = machine_downtime_chart(machine_df)
+
         if fig:
             st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
-            show = a["machine_summary"].head(10)
-            st.dataframe(show, use_container_width=True, hide_index=True)
-        else:
+
+        if machine_df is not None and not machine_df.empty:
+            st.dataframe(
+                machine_df.head(10),
+                use_container_width=True,
+                hide_index=True,
+            )
+        elif not fig:
             st.info("Machine issue fields were not detected.")
 
     left, right = st.columns([1, 1])
+
     with left:
         st.markdown("### Frequent machine issues")
         fig = issue_chart(a.get("issue_summary"))
@@ -108,10 +139,19 @@ def render_dashboard():
 
     st.markdown("### AI management analysis")
     b1, b2 = st.columns([1, 3])
+
     with b1:
-        run = st.button("Generate / refresh analysis", type="primary", use_container_width=True)
+        run = st.button(
+            "Generate / refresh analysis",
+            type="primary",
+            use_container_width=True,
+        )
+
     with b2:
-        st.caption("Gemini receives calculated summaries and data-quality information, not a hidden database.")
+        st.caption(
+            "Gemini receives calculated summaries and data-quality information, "
+            "not a hidden database."
+        )
 
     if run:
         try:
@@ -123,7 +163,12 @@ def render_dashboard():
                 invalidate_api_key(f"Gemini authentication failed: {exc}")
                 st.rerun()
             st.error(f"AI analysis failed: {exc}")
+
     elif st.session_state.last_ai_analysis:
         st.markdown(st.session_state.last_ai_analysis)
+
     else:
-        st.info("Generate an AI assessment when you want a management summary and suggested actions.")
+        st.info(
+            "Generate an AI assessment when you want a management summary "
+            "and suggested actions."
+        )
