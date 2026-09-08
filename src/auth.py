@@ -1,18 +1,24 @@
 import streamlit as st
 
-from src.gemini_client import validate_key
+from src.gemini_client import (
+    GENERATION_MODEL,
+    validate_key,
+    is_auth_error,
+    is_transient_error,
+)
 from src.state import invalidate_api_key
 
 def render_api_key_gate():
     st.markdown('<div class="login-spacer"></div>', unsafe_allow_html=True)
-    left, center, right = st.columns([1.2, 1.5, 1.2])
+    _, center, _ = st.columns([1.2, 1.5, 1.2])
+
     with center:
         st.markdown(
             """
             <div class="key-card">
                 <div class="key-icon">✦</div>
                 <h1>FactoryOps AI</h1>
-                <p>Connect Gemini to start your private, session-based production analysis.</p>
+                <p>Connect Gemini to start your session-based production analysis.</p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -30,23 +36,49 @@ def render_api_key_gate():
             )
             submitted = st.form_submit_button("Connect Gemini", use_container_width=True)
 
-        st.caption("Model: Gemini 3.6 Flash • RAG index: FAISS (in memory)")
+        st.caption(f"Generation: {GENERATION_MODEL} • Vector search: FAISS")
 
-        if submitted:
-            if not api_key.strip():
-                st.warning("Enter a Gemini API key.")
-                return
-            with st.spinner("Validating key…"):
-                try:
-                    client, ok = validate_key(api_key.strip())
-                    if not ok:
-                        invalidate_api_key("Gemini did not return a validation response.")
-                        st.rerun()
-                    st.session_state.api_key = api_key.strip()
-                    st.session_state.client = client
-                    st.session_state.api_key_valid = True
-                    st.session_state.auth_error = None
+        if not submitted:
+            return
+
+        if not api_key.strip():
+            st.warning("Enter a Gemini API key.")
+            return
+
+        with st.spinner("Validating API key…"):
+            try:
+                client, model_available, _ = validate_key(api_key.strip())
+
+                st.session_state.api_key = api_key.strip()
+                st.session_state.client = client
+                st.session_state.api_key_valid = True
+                st.session_state.auth_error = None
+                st.session_state.generation_model_available = model_available
+
+                if model_available:
+                    st.session_state.model_warning = None
+                else:
+                    # Key is valid. Do not force the user back to the key screen.
+                    st.session_state.model_warning = (
+                        f"Your key is valid, but {GENERATION_MODEL} was not returned by "
+                        "the Models API for this project/region. The dashboard can still "
+                        "analyze uploaded data; Gemini-generated analysis will stay disabled "
+                        "until the model becomes available."
+                    )
+
+                st.rerun()
+
+            except Exception as exc:
+                if is_auth_error(exc):
+                    invalidate_api_key(
+                        "The Gemini API key was rejected. Check the key and try again."
+                    )
                     st.rerun()
-                except Exception as exc:
-                    invalidate_api_key(f"Gemini rejected the key or model request: {exc}")
-                    st.rerun()
+
+                if is_transient_error(exc):
+                    st.error(
+                        "Gemini's API is temporarily unavailable. Your key was not marked "
+                        "invalid. Try Connect Gemini again in a moment."
+                    )
+                else:
+                    st.error(f"Could not validate the Gemini connection: {exc}")

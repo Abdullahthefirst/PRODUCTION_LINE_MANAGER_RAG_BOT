@@ -17,8 +17,9 @@ st.set_page_config(
 init_state()
 inject_css()
 
-# API key gate appears first and is removed from the UI after a successful validation.
-# It is shown again only when an API call is classified as an authentication/key error.
+# The key gate is the only intentional st.stop().
+# Once a key is validated, it does NOT reappear for 503/high-demand/model errors.
+# It reappears only when code explicitly calls invalidate_api_key() for a true auth failure.
 if not st.session_state.api_key_valid:
     render_api_key_gate()
     st.stop()
@@ -44,14 +45,21 @@ with st.sidebar:
     )
 
     st.divider()
+
     if st.session_state.data_ready:
-        st.success("Factory data loaded", icon="✅")
-        st.caption(f"{len(st.session_state.chunks)} searchable knowledge chunks")
+        st.success("Factory files processed", icon="✅")
+        st.caption(
+            f"{len(st.session_state.chunks)} chunks • "
+            f"{'FAISS ready' if st.session_state.rag_ready else 'FAISS not ready'}"
+        )
         if st.button("Clear uploaded data", use_container_width=True):
             reset_factory_data()
             st.rerun()
     else:
-        st.info("Upload factory data to begin.", icon="ℹ️")
+        st.info("No factory files processed yet.", icon="ℹ️")
+
+    if st.session_state.model_warning:
+        st.warning("Gemini 3.6 Flash is currently unavailable for this API project/region.")
 
     st.caption("Session-only: uploaded data and FAISS index are not persisted.")
 

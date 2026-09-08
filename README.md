@@ -1,108 +1,83 @@
-# FactoryOps AI
+# FactoryOps AI — corrected Streamlit build
 
-A session-only Streamlit dashboard for mid-sized factory production analysis.
+Session-only production intelligence dashboard using:
 
-## Core features
+- Streamlit
+- Gemini 3.6 Flash (`gemini-3.6-flash`)
+- Gemini text embeddings (`gemini-embedding-001`)
+- FAISS
+- Pandas
+- Plotly
 
-- Gemini API key gate shown at startup.
-- The API-key section disappears after successful validation.
-- It reappears only when the app detects a Gemini authentication/key failure.
-- Upload multiple CSV, Excel, JSON, TXT, Markdown, PDF, and DOCX files.
-- Normalize common production, line, supervisor, target, machine, issue, downtime and defect fields.
-- Report missing / insufficient information before relying on it.
-- Calculate target vs actual, variance, line performance, downtime and recurring machine issues.
-- Interactive Plotly dashboard.
-- Gemini 3.6 Flash management analysis and suggestions.
-- In-memory FAISS semantic retrieval.
-- "Ask the Factory" RAG chat with retrieved evidence.
-- No application database; uploaded/processed data stays in the Streamlit session.
+## Corrections in this build
 
-## Architecture
+1. **Gemini key handling**
+   - The key gate validates credentials with the Models API rather than a generation request.
+   - A 503/high-demand response is not treated as a false key.
+   - The key screen returns only for genuine authentication failures.
 
-```text
-Uploads
-  ↓
-Extraction
-  ↓
-Column normalization
-  ↓
-Data-quality / sufficiency check
-  ↓
-Deterministic analytics ─────────────→ Dashboard charts + KPI cards
-  ↓
-Chunk generation
-  ↓
-Gemini embeddings
-  ↓
-In-memory FAISS
-  ↓
-RAG retrieval ──→ Gemini 3.6 Flash ──→ Factory Q&A / recommendations
-```
+2. **Gemini 3.6 Flash**
+   - The project keeps the stable model ID `gemini-3.6-flash`.
+   - If the key/project/region does not expose that model, the app does not crash or invalidate the key.
+   - Deterministic dashboard analysis continues to work.
+   - Generation calls retry temporary 429/5xx errors with exponential backoff.
 
-The app deliberately calculates numeric facts in Python instead of asking the LLM to infer sums,
-rankings or target variances from vector-search results.
+3. **Incomplete / missing file data**
+   - Missing target, actual, week, machine, issue, supervisor or downtime columns no longer crash charts.
+   - Empty or partly-readable files are reported as data gaps.
+   - Analytics are stored before embedding begins, so a Gemini embedding failure does not destroy the dashboard result.
+   - If no searchable chunks exist, the dashboard still loads and explains that RAG is unavailable.
 
-## Local setup
+4. **Dashboard**
+   - Null-safe KPI cards and charts.
+   - Weekly production chart only renders available series.
+   - Line and machine tables only use existing columns.
+   - Interactive line filter.
+   - Data-readiness panel.
+   - Calculated machine/production alerts.
+   - Uploaded-data preview.
+   - AI analysis is optional and does not block local analytics.
 
-Use Python 3.11 or 3.12 for the easiest FAISS compatibility.
+5. **FAISS**
+   - FAISS is still session-only and in memory.
+   - Failed embedding/index creation can be retried from Upload Data.
+
+## Run locally
 
 ```bash
 python -m venv .venv
-# Windows:
+
+# Windows
 .venv\Scripts\activate
 
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
-The app asks for the Gemini API key inside the UI, so a Streamlit secret is not required.
+For Streamlit Community Cloud, point the app entry file to:
 
-## Streamlit Community Cloud deployment
+```text
+app.py
+```
 
-1. Create a GitHub repository.
-2. Upload this project with `app.py`, `requirements.txt`, `src/`, and `.streamlit/` at the repository root.
-3. In Streamlit Community Cloud, create an app from the repository.
-4. Set the entrypoint to `app.py`.
-5. Choose a compatible Python version (3.11 or 3.12 recommended here).
-6. Deploy.
-7. Open the app and enter a Gemini API key.
+Python 3.11 or 3.12 is recommended for the smoothest compatibility with FAISS and ML packages.
 
-## Gemini models used
+## Main files
 
-Generation:
-- `gemini-3.6-flash`
-
-Embeddings:
-- `gemini-embedding-001`
-
-The model IDs are isolated in `src/gemini_client.py`, so changing models later takes one edit.
-
-## Expected useful fields
-
-The loader accepts different column names and maps common aliases. Best results come from data that
-contains some of:
-
-- quarter / quarter target
-- week / week start
-- production line
-- line supervisor
-- product
-- weekly target
-- actual production
-- downtime
-- defect / reject units
-- machine ID / type
-- machine issue
-- issue severity
-- action taken
-- resolved status
-
-## Important MVP limitations
-
-- "Any file" really means the supported readable business formats above. Scanned PDFs/images need OCR
-  or Gemini multimodal extraction, which is intentionally not included in this lightweight MVP.
-- FAISS is in memory. A Streamlit rerun keeps it in the session, but a lost/restarted session requires
-  the user to upload/process the data again.
-- Automatic alias-based normalization is reliable for common spreadsheets, but very unusual schemas
-  may need an additional Gemini structured-extraction step.
-- Recommendations are decision support, not automatic maintenance commands.
+```text
+app.py
+src/
+  auth.py
+  gemini_client.py
+  ingestion.py
+  analytics.py
+  charts.py
+  dashboard.py
+  rag_engine.py
+  rag.py
+  ai_analysis.py
+  schema.py
+  data_utils.py
+  state.py
+  styles.py
+```

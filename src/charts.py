@@ -1,13 +1,19 @@
+import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
 PLOTLY_CONFIG = {"displayModeBar": False, "responsive": True}
 
-def line_performance_chart(df):
-    if df is None or df.empty:
-        return None
+def _valid(df, required):
+    return (
+        df is not None
+        and isinstance(df, pd.DataFrame)
+        and not df.empty
+        and all(c in df.columns for c in required)
+    )
 
-    if "line_id" not in df.columns or "achievement_pct" not in df.columns:
+def line_performance_chart(df):
+    if not _valid(df, ["line_id", "achievement_pct"]):
         return None
 
     data = df.dropna(subset=["achievement_pct"]).copy()
@@ -15,7 +21,6 @@ def line_performance_chart(df):
         return None
 
     data = data.sort_values("achievement_pct", ascending=False)
-
     hover_cols = [
         c for c in ["target_units", "actual_units", "supervisor", "variance"]
         if c in data.columns
@@ -41,42 +46,30 @@ def line_performance_chart(df):
     return fig
 
 def weekly_chart(df):
-    if df is None or df.empty or "week" not in df.columns:
-        return None
-
-    available_series = [
-        c for c in ["target_units", "actual_units"]
-        if c in df.columns
-    ]
-
-    if not available_series:
+    if not _valid(df, ["week"]):
         return None
 
     fig = go.Figure()
 
-    if "target_units" in df.columns:
-        target = df["target_units"]
-        if target.notna().any():
-            fig.add_trace(
-                go.Scatter(
-                    x=df["week"],
-                    y=target,
-                    mode="lines+markers",
-                    name="Target",
-                )
+    if "target_units" in df.columns and df["target_units"].notna().any():
+        fig.add_trace(
+            go.Scatter(
+                x=df["week"],
+                y=df["target_units"],
+                mode="lines+markers",
+                name="Target",
             )
+        )
 
-    if "actual_units" in df.columns:
-        actual = df["actual_units"]
-        if actual.notna().any():
-            fig.add_trace(
-                go.Scatter(
-                    x=df["week"],
-                    y=actual,
-                    mode="lines+markers",
-                    name="Actual",
-                )
+    if "actual_units" in df.columns and df["actual_units"].notna().any():
+        fig.add_trace(
+            go.Scatter(
+                x=df["week"],
+                y=df["actual_units"],
+                mode="lines+markers",
+                name="Actual",
             )
+        )
 
     if not fig.data:
         return None
@@ -91,32 +84,29 @@ def weekly_chart(df):
     return fig
 
 def machine_downtime_chart(df):
-    if df is None or df.empty or "machine_id" not in df.columns:
+    if not _valid(df, ["machine_id"]):
         return None
 
     if "downtime_minutes" in df.columns and df["downtime_minutes"].notna().any():
-        y = "downtime_minutes"
+        metric = "downtime_minutes"
         label = "Downtime minutes"
     elif "issue_count" in df.columns and df["issue_count"].notna().any():
-        y = "issue_count"
+        metric = "issue_count"
         label = "Issue count"
     else:
         return None
 
-    data = df.dropna(subset=[y]).head(10).sort_values(y)
+    data = df.dropna(subset=[metric]).head(10).sort_values(metric)
     if data.empty:
         return None
 
     fig = px.bar(
         data,
-        x=y,
+        x=metric,
         y="machine_id",
         orientation="h",
-        hover_data=[
-            c for c in ["issue_count", "line_id"]
-            if c in data.columns
-        ],
-        labels={y: label, "machine_id": "Machine"},
+        hover_data=[c for c in ["issue_count", "line_id"] if c in data.columns],
+        labels={metric: label, "machine_id": "Machine"},
     )
     fig.update_layout(
         height=330,
@@ -127,10 +117,7 @@ def machine_downtime_chart(df):
     return fig
 
 def issue_chart(df):
-    if df is None or df.empty:
-        return None
-
-    if "issue" not in df.columns or "count" not in df.columns:
+    if not _valid(df, ["issue", "count"]):
         return None
 
     data = df.dropna(subset=["count"]).head(8).sort_values("count")
